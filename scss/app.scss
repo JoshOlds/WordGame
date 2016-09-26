@@ -1,0 +1,17 @@
+@charset 'utf-8';
+
+@import 'settings';
+@import 'foundation';
+@import 'motion-ui';
+
+//@import 'https://maxcdn.bootstrapcdn.com/font-awesome/4.6.3/css/font-awesome.min.css';
+
+@include foundation-everything(true);
+
+$row-width: 100%; //Full width rows!
+$primary-color: white;
+$background-color: grey;
+
+body{
+    background-color: $background-color;
+}
