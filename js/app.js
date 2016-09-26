@@ -1,7 +1,7 @@
 //$(document).foundation();
 
 var debugFlag = false;
-var debugDrawFlag = false;
+var debugDrawFlag = true;
 
 
 
@@ -33,10 +33,15 @@ function gameController(canvas) {
     this.score = 0;
     this.health = 100;
     this.clears = 0;
-    this.clearChance = 20;
-    this.modChance = 2;
-    this.reversed = false;
-    this.reverseCounter = 0;
+    this.clearChance = 5;
+    this.modChance = 0;
+    this.scoreMultiplier = 1;
+
+    this.doubleTime = false;
+    this.slowMo = false;
+    this.rain = false;
+    this.cascade = true;
+
 }
 
 function wordObj(text, x, y) {
@@ -45,6 +50,11 @@ function wordObj(text, x, y) {
     this.x = x;
     this.y = y;
     this.speed = (Math.random() * (controller.score / 100)) + 1; //Using globals again... (Laziness > desire for good practice) : True
+    if(Math.random() > 0.5){
+        this.cascadeDir = 3;
+    }else{
+        this.cascadeDir = -3;
+    }
 }
 
 gameController.prototype.addWord = function () {
@@ -57,18 +67,17 @@ gameController.prototype.addWord = function () {
     var timeUntilNextWord = ((60 / that.wpm) * 1000)
 
     if (Math.random() < (that.clearChance / 100)) { //Roll for clear chance
-        that.clearChance = that.clearChance / 2;
         var word = new wordObj("CLEAR", Math.floor(Math.random() * (that.canvas.width - 300)), 30);
         that.wordContainer.push(word);
         window.setTimeout(that.addWord, timeUntilNextWord);
         return word;
     }
-    if (Math.random() < (that.reverseCounter / 100)) { //Roll for reverse. If failed, up the chance!
-        var word = new wordObj("REVERSE", Math.floor(Math.random() * (that.canvas.width - 300)), 30);
+    if (Math.random() < (that.modChance / 100)) { //Roll for modifier. If failed, up the chance!
+        var word = new wordObj("MODIFIER", Math.floor(Math.random() * (that.canvas.width - 300)), 30);
         that.wordContainer.push(word);
         window.setTimeout(that.addWord, timeUntilNextWord);
         return word;
-    }else{that.reverseCounter++;}
+    }else{that.modChance++;}
 
     var lengthOfArr = fullWordListArr.length;
     var text = fullWordListArr[Math.floor(Math.random() * lengthOfArr)]; //Grab a random word from wordlist in words.js
@@ -108,11 +117,24 @@ function mainLoop() {
 
 function updatePositions(gameController) {
     var wordsArr = gameController.wordContainer;
+    var multiplier = 1.0;
+    if(gameController.doubleTime){ multiplier = multiplier * 2;}
+    if(gameController.slowMo){ multiplier = multiplier / 2;}
 
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
+        if(currentWord === undefined){ //Catch errors
+            return;
+        }
+        
+        currentWord.y += currentWord.speed * multiplier;
 
-        currentWord.y += currentWord.speed;
+        if(gameController.cascade){
+            currentWord.x += currentWord.cascadeDir;
+            if(currentWord.x > gameController.canvas.width - 100 || currentWord.x < 10){
+                currentWord.cascadeDir = (currentWord.cascadeDir * -2);
+            }
+        }
 
         if (currentWord.y >= gameController.canvas.height - 10) {
             gameController.health -= currentWord.value;
@@ -127,19 +149,22 @@ function updateWords(gameController) {
 
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
+        if(currentWord === undefined){
+            return;//Catch errors
+        }
         if (currentWord.text == gameController.buffer) { // If complete buffer word found in array
             wordsArr.splice(i, 1);
-            gameController.score += currentWord.value;
+            gameController.score += currentWord.value * gameController.scoreMultiplier;
             gameController.wpm += (currentWord.value / 10);
             if (gameController.buffer == "CLEAR") {
                 gameController.clears++;
             }
-            if (gameController.buffer == "REVERSE"){
-                gameController.reverseCounter = 0;
-                if (gameController.reversed) { gameController.reversed = false; }
-                else { gameController.reversed = true; }
+            if (gameController.buffer == "MODIFIER"){
+                gameController.modChance = 0;
+                randomModifier(gameController);
             }
             gameController.buffer = ''; //Reset buffer
+            return;
         }
     }
 }
@@ -156,31 +181,20 @@ function draw(gameController) {
     wordsArr = gameController.wordContainer;
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
-        var text = currentWord.text;
-        var reversedText = text.split("").reverse().join("");
-
-        if (gameController.reversed) {
-            ctx.strokeText(reversedText, currentWord.x, currentWord.y);
-        } else {
-            ctx.strokeText(currentWord.text, currentWord.x, currentWord.y);
+        if (currentWord === undefined){ //Catch errors
+            return;
         }
+        var text = currentWord.text;
+
+        ctx.strokeText(currentWord.text, currentWord.x, currentWord.y);
 
         if (currentWord.text == "CLEAR") {
             ctx.fillStyle = '#0000FF';
-            if(!gameController.reversed){
-                ctx.fillText(currentWord.text, currentWord.x, currentWord.y);
-            }else{
-                ctx.fillText(currentWord.text.split("").reverse().join(""), currentWord.x, currentWord.y);
-            }
-            
+            ctx.fillText(currentWord.text, currentWord.x, currentWord.y);
             ctx.fillStyle = '#FF0000';
         }
         if (currentWord.text.startsWith(gameController.buffer)) { //Fill characters of words matching buffer...
-            if (gameController.reversed) {
-                ctx.fillText(gameController.buffer.split("").reverse().join(""), currentWord.x, currentWord.y);
-            } else {
-                ctx.fillText(gameController.buffer, currentWord.x, currentWord.y);
-            }
+            ctx.fillText(gameController.buffer, currentWord.x, currentWord.y);
         }
 
         if (debugDrawFlag) {
@@ -188,10 +202,11 @@ function draw(gameController) {
         }
     }
 
+    //Health bar
     ctx.fillStyle = "#00DD11";
     ctx.fillRect(10, gameController.canvas.height - 75, (gameController.health / 100) * (gameController.canvas.width - 40), 35);
-
     ctx.fillStyle = "#111111"; //Set back for clearing screen? Doesn't work if we dont do this...
+    //
 
     if (debugFlag) {
         ctx.strokeText(gameController.buffer, 10, gameController.canvas.height - 100);
@@ -201,12 +216,17 @@ function draw(gameController) {
     }
     ctx.strokeText("Clears: " + String(gameController.clears), 10, gameController.canvas.height - 150)
 
-
+    // Modifiers
+    ctx.strokeStyle = '#FFFF00';
+    if(gameController.doubleTime){ctx.strokeText("Double Time", 400, gameController.canvas.height - 100);}
+    if(gameController.slowMo){ctx.strokeText("Slow Mo", 600, gameController.canvas.height - 100);}
+    if(gameController.rain){ctx.strokeText("Rain", 800, gameController.canvas.height - 100);}
+    if(gameController.cascade){ctx.strokeText("Cascade", 1000, gameController.canvas.height - 100);}
 
     if (debugDrawFlag) { console.log("Draw Complete.") }
 }
 
-var gameOver = function () {
+function gameOver() {
     clear(controller.canvas, '#111111');
     var canvas = controller.canvas;
     clear(canvas, '#111111'); //Clear the canvas
@@ -225,15 +245,15 @@ var gameOver = function () {
     controller.gameRunning = false;
 
 }
-var resetGame = function () {
+function resetGame() {
     controller = new gameController(canvas);
     setTimeout(controller.addWord, 1000);
     requestAnimationFrame(mainLoop);
 }
-var useClear = function (gameController) {
+function useClear(gameController) {
+    gameController.clearChance = gameController.clearChance / 2;
     gameController.clears--;
     controller.wordContainer = []; //Empty the whole dang container
-    controller.reversed = false;
     gameController.buffer = ''; //Reset buffer
 }
 
@@ -311,4 +331,25 @@ function addKeyToBuffer(char) {
     }
 
     if (debugFlag) { console.log("Not adding: " + char + " to the buffer;"); }
+}
+
+
+/* ------------------ Modifiers!!! -------------------*/
+function randomModifier(gameController){
+    var modifierAmt = 4;
+
+    var selection = Math.random() * modifierAmt;
+
+    if(selection <= 1){ // Doubletime!
+        gameController.doubleTime = !gameController.doubleTime;
+    }
+    if(selection > 1 && selection <= 2){ // Slow Mo!
+        gameController.slowMo = !gameController.slowMo;
+    }
+    if(selection > 2 && selection <= 3){ // Rain!
+        gameController.rain = !gameController.rain;
+    }
+    if(selection > 3 && selection <= 4){ // Cascade!
+        gameController.cascade = !gameController.cascade;
+    }
 }

@@ -2124,3 +2124,4 @@ yesterday
 `
 
 var fullWordListArr = fullWordList.split("\n");
+// var fullWordListArr = ["test"];
