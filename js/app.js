@@ -204,7 +204,7 @@ function draw(gameController) {
         canvas.style.webkitFilter = "blur(0px)";  //Blur effect!
     }
 
-    wordsArr = gameController.wordContainer;
+    var wordsArr = gameController.wordContainer;
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
         if (currentWord === undefined) { //Catch errors
@@ -352,6 +352,7 @@ document.onkeypress = function (evt) { // This function will run when any k ey i
     var charStr = String.fromCharCode(charCode);
 
     if (debugFlag) { console.log("Key pressed: " + charStr); }
+
     addKeyToBuffer(charStr);
 
     if ((!controller.gameRunning) && charCode == 32) { //spacebar
@@ -443,7 +444,7 @@ if (canvas.getContext) {
 
     function downpour(boolean) {
         if (boolean) {
-            for (var a = 0; a < 3000; a++) {
+            for (var a = 0; a < 1000; a++) {
                 init.push({
                     x: Math.random() * w,
                     y: Math.random() * h,
@@ -453,12 +454,12 @@ if (canvas.getContext) {
                 })
             }
             particles = [];
-            for (var b = 0; b < 3000; b++) {
+            for (var b = 0; b < 1000; b++) {
                 particles[b] = init[b];
             }
         } else {
             if (init.length > 200) {
-                for (var a = 0; a < 3000; a++) {
+                for (var a = 0; a < 1000; a++) {
                     init.pop();
                 }
             }
