@@ -1,7 +1,7 @@
 //$(document).foundation();
 
 var debugFlag = false;
-var debugDrawFlag = true;
+var debugDrawFlag = false;
 
 
 
@@ -39,8 +39,8 @@ function gameController(canvas) {
 
     this.doubleTime = false;
     this.slowMo = false;
-    this.rain = false;
-    this.cascade = true;
+    this.rain = true;
+    this.cascade = false;
 
 }
 
@@ -50,9 +50,9 @@ function wordObj(text, x, y) {
     this.x = x;
     this.y = y;
     this.speed = (Math.random() * (controller.score / 100)) + 1; //Using globals again... (Laziness > desire for good practice) : True
-    if(Math.random() > 0.5){
+    if (Math.random() > 0.5) {
         this.cascadeDir = 3;
-    }else{
+    } else {
         this.cascadeDir = -3;
     }
 }
@@ -77,7 +77,7 @@ gameController.prototype.addWord = function () {
         that.wordContainer.push(word);
         window.setTimeout(that.addWord, timeUntilNextWord);
         return word;
-    }else{that.modChance++;}
+    } else { that.modChance++; }
 
     var lengthOfArr = fullWordListArr.length;
     var text = fullWordListArr[Math.floor(Math.random() * lengthOfArr)]; //Grab a random word from wordlist in words.js
@@ -118,21 +118,24 @@ function mainLoop() {
 function updatePositions(gameController) {
     var wordsArr = gameController.wordContainer;
     var multiplier = 1.0;
-    if(gameController.doubleTime){ multiplier = multiplier * 2;}
-    if(gameController.slowMo){ multiplier = multiplier / 2;}
+    if (gameController.doubleTime) { multiplier = multiplier * 2; }
+    if (gameController.slowMo) { multiplier = multiplier / 2; }
 
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
-        if(currentWord === undefined){ //Catch errors
+        if (currentWord === undefined) { //Catch errors
             return;
         }
-        
+
         currentWord.y += currentWord.speed * multiplier;
 
-        if(gameController.cascade){
+        if (gameController.cascade) {
             currentWord.x += currentWord.cascadeDir;
-            if(currentWord.x > gameController.canvas.width - 100 || currentWord.x < 10){
+            if (currentWord.x > gameController.canvas.width - 100 || currentWord.x < 10) {
                 currentWord.cascadeDir = (currentWord.cascadeDir * -2);
+                if (currentWord.cascadeDir > 20 || currentWord.cascadeDir < -20) {
+                    currentWord.cascadeDir = currentWord.cascadeDir * 0.5;
+                }
             }
         }
 
@@ -149,7 +152,7 @@ function updateWords(gameController) {
 
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
-        if(currentWord === undefined){
+        if (currentWord === undefined) {
             return;//Catch errors
         }
         if (currentWord.text == gameController.buffer) { // If complete buffer word found in array
@@ -159,7 +162,7 @@ function updateWords(gameController) {
             if (gameController.buffer == "CLEAR") {
                 gameController.clears++;
             }
-            if (gameController.buffer == "MODIFIER"){
+            if (gameController.buffer == "MODIFIER") {
                 gameController.modChance = 0;
                 randomModifier(gameController);
             }
@@ -181,7 +184,7 @@ function draw(gameController) {
     wordsArr = gameController.wordContainer;
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
-        if (currentWord === undefined){ //Catch errors
+        if (currentWord === undefined) { //Catch errors
             return;
         }
         var text = currentWord.text;
@@ -200,6 +203,7 @@ function draw(gameController) {
         if (debugDrawFlag) {
             console.log("Drawing " + currentWord.text + " @ " + currentWord.x + " , " + currentWord.y)
         }
+
     }
 
     //Health bar
@@ -218,12 +222,16 @@ function draw(gameController) {
 
     // Modifiers
     ctx.strokeStyle = '#FFFF00';
-    if(gameController.doubleTime){ctx.strokeText("Double Time", 400, gameController.canvas.height - 100);}
-    if(gameController.slowMo){ctx.strokeText("Slow Mo", 600, gameController.canvas.height - 100);}
-    if(gameController.rain){ctx.strokeText("Rain", 800, gameController.canvas.height - 100);}
-    if(gameController.cascade){ctx.strokeText("Cascade", 1000, gameController.canvas.height - 100);}
+    if (gameController.doubleTime) { ctx.strokeText("Double Time", 400, gameController.canvas.height - 100); }
+    if (gameController.slowMo) { ctx.strokeText("Slow Mo", 600, gameController.canvas.height - 100); }
+    if (gameController.rain) { ctx.strokeText("Rain", 800, gameController.canvas.height - 100); }
+    if (gameController.cascade) { ctx.strokeText("Cascade", 1000, gameController.canvas.height - 100); }
 
     if (debugDrawFlag) { console.log("Draw Complete.") }
+
+    if(gameController.rain){
+            rainDraw();
+        }
 }
 
 function gameOver() {
@@ -261,7 +269,6 @@ function useClear(gameController) {
 var canvas = setupCanvas();
 var controller = new gameController(canvas);
 setTimeout(controller.addWord, 1000);
-
 requestAnimationFrame(mainLoop);
 
 
@@ -333,23 +340,99 @@ function addKeyToBuffer(char) {
     if (debugFlag) { console.log("Not adding: " + char + " to the buffer;"); }
 }
 
+function rain() {
+    this.drops = [];
+}
+function drop(x, y) {
+    this.x = x;
+    this.y = y;
+}
+
 
 /* ------------------ Modifiers!!! -------------------*/
-function randomModifier(gameController){
+function randomModifier(gameController) {
     var modifierAmt = 4;
 
     var selection = Math.random() * modifierAmt;
 
-    if(selection <= 1){ // Doubletime!
+    if (selection <= 1) { // Doubletime!
         gameController.doubleTime = !gameController.doubleTime;
     }
-    if(selection > 1 && selection <= 2){ // Slow Mo!
+    if (selection > 1 && selection <= 2) { // Slow Mo!
         gameController.slowMo = !gameController.slowMo;
     }
-    if(selection > 2 && selection <= 3){ // Rain!
+    if (selection > 2 && selection <= 3) { // Rain!
         gameController.rain = !gameController.rain;
     }
-    if(selection > 3 && selection <= 4){ // Cascade!
+    if (selection > 3 && selection <= 4) { // Cascade!
         gameController.cascade = !gameController.cascade;
     }
 }
+
+
+
+// Rain functions
+if (canvas.getContext) {
+    var ctx = canvas.getContext('2d');
+    var w = canvas.width;
+    var h = canvas.height;
+    ctx.strokeStyle = 'rgba(174,194,224,0.5)';
+    ctx.lineWidth = 1;
+    ctx.lineCap = 'round';
+
+
+    var init = [];
+    var maxParts = 1000;
+    for (var a = 0; a < maxParts; a++) {
+        init.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            l: Math.random() * 1,
+            xs: -4 + Math.random() * 4 + 2,
+            ys: Math.random() * 10 + 10
+        })
+    }
+
+    var particles = [];
+    for (var b = 0; b < maxParts; b++) {
+        particles[b] = init[b];
+    }
+
+    function rainDraw() {
+        //ctx.clearRect(0, 0, w, h);
+        for (var c = 0; c < particles.length; c++) {
+            var p = particles[c];
+            ctx.strokeStyle = "#0055FF";
+            ctx.beginPath();
+            ctx.moveTo(p.x, p.y);
+            ctx.lineTo(p.x + p.l * p.xs, p.y + p.l * p.ys);
+            ctx.stroke();
+        }
+        rainMove();
+    }
+
+    function rainMove() {
+        for (var b = 0; b < particles.length; b++) {
+            var p = particles[b];
+            p.x += p.xs;
+            p.y += p.ys;
+            if (p.x > w || p.y > h) {
+                p.x = Math.random() * w;
+                p.y = -20;
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
