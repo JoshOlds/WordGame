@@ -1,9 +1,5 @@
-//$(document).foundation();
-
 var debugFlag = false;
 var debugDrawFlag = false;
-
-
 
 function debugLog() {
     console.log("Debug Logged!");
@@ -39,7 +35,7 @@ function gameController(canvas) {
 
     this.doubleTime = false;
     this.slowMo = false;
-    this.rain = true;
+    this.rain = false;
     this.cascade = false;
 
 }
@@ -103,16 +99,24 @@ gameController.prototype.addWord = function () {
 
 //Main program loop
 function mainLoop() {
-    updatePositions(controller); //Update all word locations!
-    updateWords(controller); //Checks for completed words
-    draw(controller); //Draw to the screen!
-    if (controller.health <= 0) { gameOver(); } //Run game over if health is 0
+    requestAnimationFrame(mainLoop);
 
-    if (controller.gameRunning) {
-        requestAnimationFrame(mainLoop); //Loop again when browser is ready. 60FPS if possible
+    now = Date.now();
+    elapsed = now - then; // if enough time has elapsed, draw the next frame
+    if (elapsed > fpsInterval) {
+        // Get ready for next frame by setting then=now, but also adjust for 
+        // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
+        then = now - (elapsed % fpsInterval);
+
+        updatePositions(controller); //Update all word locations!
+        updateWords(controller); //Checks for completed words
+        draw(controller); //Draw to the screen!
+        if (controller.health <= 0) { gameOver(); } //Run game over if health is 0
+
+        if (controller.gameRunning) {
+            requestAnimationFrame(mainLoop); //Loop again when browser is ready. 60FPS if possible
+        }
     }
-
-
 }
 
 function updatePositions(gameController) {
@@ -266,14 +270,22 @@ function useClear(gameController) {
 }
 
 /* =========== Start of Code ==================*/
+var fps, fpsInterval, startTime, now, then, elapsed;
+fps = 60;
 var canvas = setupCanvas();
 var controller = new gameController(canvas);
+
+fpsInterval = 1000 / fps;
+then = Date.now();
+startTime = then;
+
 setTimeout(controller.addWord, 1000);
-requestAnimationFrame(mainLoop);
+mainLoop();
 
 
 
 /* ----------------- Utility Functions ----------------*/
+
 function getWidth() { //This function finds the width of the browser window... since it is different for all browsers
     if (self.innerWidth) {
         return self.innerWidth;
