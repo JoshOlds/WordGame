@@ -35,6 +35,8 @@ function gameController(canvas) {
     this.clears = 0;
     this.clearChance = 20;
     this.modChance = 2;
+    this.reversed = false;
+    this.reverseCounter = 0;
 }
 
 function wordObj(text, x, y) {
@@ -52,13 +54,21 @@ gameController.prototype.addWord = function () {
         var that = this;
     }
 
-    if(Math.random() < (that.clearChance / 100)){ //Roll for clear chance
+    var timeUntilNextWord = ((60 / that.wpm) * 1000)
+
+    if (Math.random() < (that.clearChance / 100)) { //Roll for clear chance
         that.clearChance = that.clearChance / 2;
         var word = new wordObj("CLEAR", Math.floor(Math.random() * (that.canvas.width - 300)), 30);
         that.wordContainer.push(word);
         window.setTimeout(that.addWord, timeUntilNextWord);
-        return;
+        return word;
     }
+    if (Math.random() < (that.reverseCounter / 100)) { //Roll for reverse. If failed, up the chance!
+        var word = new wordObj("REVERSE", Math.floor(Math.random() * (that.canvas.width - 300)), 30);
+        that.wordContainer.push(word);
+        window.setTimeout(that.addWord, timeUntilNextWord);
+        return word;
+    }else{that.reverseCounter++;}
 
     var lengthOfArr = fullWordListArr.length;
     var text = fullWordListArr[Math.floor(Math.random() * lengthOfArr)]; //Grab a random word from wordlist in words.js
@@ -69,7 +79,9 @@ gameController.prototype.addWord = function () {
 
     that.wordContainer.push(word);
 
-    var timeUntilNextWord = (60 / that.wpm) * 1000; //In milliseconds, so 60 seconds / words per minute, * 1000 milliseconds/sec
+    //Override time if not special
+    timeUntilNextWord = ((60 / that.wpm) * 1000) + (100 * word.text.length); //In milliseconds, so 60 seconds / words per minute, * 1000 milliseconds/sec
+
     if (that.gameRunning) {
         window.setTimeout(that.addWord, timeUntilNextWord); //Break our timer if game is over
     }
@@ -105,7 +117,7 @@ function updatePositions(gameController) {
         if (currentWord.y >= gameController.canvas.height - 10) {
             gameController.health -= currentWord.value;
             wordsArr.splice(i, 1);
-            if(currentWord.text.startsWith(gameController.buffer)){gameController.buffer = '';} //Only reset buffer if it is current word
+            if (currentWord.text.startsWith(gameController.buffer)) { gameController.buffer = ''; } //Only reset buffer if it is current word
         }
     }
 }
@@ -119,8 +131,13 @@ function updateWords(gameController) {
             wordsArr.splice(i, 1);
             gameController.score += currentWord.value;
             gameController.wpm += (currentWord.value / 10);
-            if(gameController.buffer == "CLEAR"){
+            if (gameController.buffer == "CLEAR") {
                 gameController.clears++;
+            }
+            if (gameController.buffer == "REVERSE"){
+                gameController.reverseCounter = 0;
+                if (gameController.reversed) { gameController.reversed = false; }
+                else { gameController.reversed = true; }
             }
             gameController.buffer = ''; //Reset buffer
         }
@@ -139,15 +156,31 @@ function draw(gameController) {
     wordsArr = gameController.wordContainer;
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
+        var text = currentWord.text;
+        var reversedText = text.split("").reverse().join("");
 
-        ctx.strokeText(currentWord.text, currentWord.x, currentWord.y);
-        if(currentWord.text == "CLEAR"){
+        if (gameController.reversed) {
+            ctx.strokeText(reversedText, currentWord.x, currentWord.y);
+        } else {
+            ctx.strokeText(currentWord.text, currentWord.x, currentWord.y);
+        }
+
+        if (currentWord.text == "CLEAR") {
             ctx.fillStyle = '#0000FF';
-            ctx.fillText(gameController.buffer, currentWord.x, currentWord.y);
+            if(!gameController.reversed){
+                ctx.fillText(currentWord.text, currentWord.x, currentWord.y);
+            }else{
+                ctx.fillText(currentWord.text.split("").reverse().join(""), currentWord.x, currentWord.y);
+            }
+            
             ctx.fillStyle = '#FF0000';
         }
         if (currentWord.text.startsWith(gameController.buffer)) { //Fill characters of words matching buffer...
-            ctx.fillText(gameController.buffer, currentWord.x, currentWord.y);
+            if (gameController.reversed) {
+                ctx.fillText(gameController.buffer.split("").reverse().join(""), currentWord.x, currentWord.y);
+            } else {
+                ctx.fillText(gameController.buffer, currentWord.x, currentWord.y);
+            }
         }
 
         if (debugDrawFlag) {
@@ -197,17 +230,10 @@ var resetGame = function () {
     setTimeout(controller.addWord, 1000);
     requestAnimationFrame(mainLoop);
 }
-var useClear = function(gameController){
-    gameControllers.clears--;
-
-    var wordsArr = gameController.wordContainer;
-
-    for (var i = 0; i < wordsArr.length; i++) {
-        var currentWord = wordsArr[i];
-        wordsArr.splice(i, 1);
-        gameController.score += currentWord.value;
-        gameController.wpm += (currentWord.value / 10);  
-    }
+var useClear = function (gameController) {
+    gameController.clears--;
+    controller.wordContainer = []; //Empty the whole dang container
+    controller.reversed = false;
     gameController.buffer = ''; //Reset buffer
 }
 
