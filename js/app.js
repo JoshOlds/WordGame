@@ -34,13 +34,13 @@ function gameController(canvas) {
     this.modChance = 10;
     this.scoreMultiplier = 1;
 
-    this.doubleTime = false;
-    this.slowMo = false;
-    this.downpour = false;
-    this.cascade = false;
-    this.overload = false;
-    this.blur = false;
-    this.upPour = false;
+    this.doubleTime = true;
+    this.slowMo = true;
+    this.downpour = true;
+    this.cascade = true;
+    this.overload = true;
+    this.blur = true;
+    this.upPour = true;
 
 }
 
@@ -136,7 +136,7 @@ function mainLoop() {
 function updatePositions(gameController) {
     var wordsArr = gameController.wordContainer;
     var multiplier = 1.0;
-    if (gameController.doubleTime) { multiplier = multiplier * 2; }
+    if (gameController.doubleTime) { multiplier = multiplier * 1.25; }
     if (gameController.slowMo) { multiplier = multiplier / 2; }
 
     for (var i = 0; i < wordsArr.length; i++) {
@@ -204,7 +204,7 @@ function draw(gameController) {
         canvas.style.webkitFilter = "blur(0px)";  //Blur effect!
     }
 
-    wordsArr = gameController.wordContainer;
+    var wordsArr = gameController.wordContainer;
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
         if (currentWord === undefined) { //Catch errors
@@ -245,13 +245,22 @@ function draw(gameController) {
 
     // Modifiers
     ctx.strokeStyle = '#FFFF00';
-    if (gameController.doubleTime) { ctx.strokeText("Double Time", 400, gameController.canvas.height - 100); }
-    if (gameController.slowMo) { ctx.strokeText("Slow Mo", 600, gameController.canvas.height - 100); }
-    if (gameController.downpour) { ctx.strokeText("Downpour", 800, gameController.canvas.height - 100); }
-    if (gameController.cascade) { ctx.strokeText("Cascade", 1000, gameController.canvas.height - 100); }
-    if (gameController.overload) { ctx.strokeText("Overload", 1200, gameController.canvas.height - 100); }
-    if (gameController.blur) { ctx.strokeText("Blur", 1400, gameController.canvas.height - 100); }
-    if (gameController.upPour) { ctx.strokeText("UpPour", 1600, gameController.canvas.height - 100); }
+    var pad = 200;
+    var padPer = 50;
+    if (gameController.doubleTime) { ctx.strokeText("Double Time", pad, gameController.canvas.height - 100); }
+    pad += ctx.measureText('Double Time').width+ padPer;
+    if (gameController.slowMo) { ctx.strokeText("Slow Mo", pad, gameController.canvas.height - 100); }
+    pad += ctx.measureText('Slow Mo').width+ padPer;
+    if (gameController.downpour) { ctx.strokeText("Downpour", pad, gameController.canvas.height - 100); }
+    pad += ctx.measureText('Downpour').width+ padPer;
+    if (gameController.cascade) { ctx.strokeText("Cascade", pad, gameController.canvas.height - 100); }
+    pad += ctx.measureText('Cascase').width+ padPer;
+    if (gameController.overload) { ctx.strokeText("Overload", pad, gameController.canvas.height - 100); }
+    pad += ctx.measureText('Overload').width+ padPer;
+    if (gameController.blur) { ctx.strokeText("Blur", pad, gameController.canvas.height - 100); }
+    pad += ctx.measureText('Blur').width+ padPer;
+    if (gameController.upPour) { ctx.strokeText("UpPour", pad, gameController.canvas.height - 100); }
+    pad += ctx.measureText('YpPour').width+ padPer;
 
     if (debugDrawFlag) { console.log("Draw Complete.") }
 
@@ -352,6 +361,7 @@ document.onkeypress = function (evt) { // This function will run when any k ey i
     var charStr = String.fromCharCode(charCode);
 
     if (debugFlag) { console.log("Key pressed: " + charStr); }
+
     addKeyToBuffer(charStr);
 
     if ((!controller.gameRunning) && charCode == 32) { //spacebar
@@ -364,7 +374,7 @@ document.onkeypress = function (evt) { // This function will run when any k ey i
 };
 
 function addKeyToBuffer(char) {
-    var wordArr = controller.wordContainer;
+    var wordsArr = controller.wordContainer;
     for (var i = 0; i < wordsArr.length; i++) {
         var currentWord = wordsArr[i];
         if (currentWord.text.startsWith(controller.buffer + char)) { //If we drop in here, we have found a matching word to the buffer
@@ -443,7 +453,7 @@ if (canvas.getContext) {
 
     function downpour(boolean) {
         if (boolean) {
-            for (var a = 0; a < 3000; a++) {
+            for (var a = 0; a < 1000; a++) {
                 init.push({
                     x: Math.random() * w,
                     y: Math.random() * h,
@@ -453,12 +463,12 @@ if (canvas.getContext) {
                 })
             }
             particles = [];
-            for (var b = 0; b < 3000; b++) {
+            for (var b = 0; b < 1000; b++) {
                 particles[b] = init[b];
             }
         } else {
             if (init.length > 200) {
-                for (var a = 0; a < 3000; a++) {
+                for (var a = 0; a < 1000; a++) {
                     init.pop();
                 }
             }
