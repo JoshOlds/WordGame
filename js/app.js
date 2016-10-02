@@ -31,16 +31,16 @@ function gameController(canvas) {
     this.health = 100;
     this.clears = 0;
     this.clearChance = 5;
-    this.modChance = 10;
+    this.modChance = 5;
     this.scoreMultiplier = 1;
 
-    this.doubleTime = true;
-    this.slowMo = true;
-    this.downpour = true;
-    this.cascade = true;
-    this.overload = true;
-    this.blur = true;
-    this.upPour = true;
+    this.doubleTime = false;
+    this.slowMo = false;
+    this.downpour = false;
+    this.cascade = false;
+    this.overload = false;
+    this.blur = false;
+    this.upPour = false;
 
 }
 
