@@ -292,7 +292,11 @@ function resetGame() {
     setTimeout(controller.addWord, 1000);
     requestAnimationFrame(mainLoop);
 
-    document.getElementById("menu-text").className = "menu-text text-center fadeOut"
+    var temp = document.getElementsByClassName("menu-text");
+    for(var i = 0; i < temp.length; i++){
+        temp[i].className = "menu-text text-center fadeOut";
+    }
+        
 }
 function useClear(gameController) {
     gameController.clearChance = gameController.clearChance / 2;
